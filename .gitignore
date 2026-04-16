@@ -1,0 +1,14 @@
+# Environment Variables
+.env
+.sam-env
+
+# SQLite Databases
+*.db
+*.sqlite3
+
+# Python Cache
+__pycache__/
+*.pyc
+
+#Virtual Environments
+venv/

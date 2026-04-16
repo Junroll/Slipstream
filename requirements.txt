@@ -1,0 +1,4 @@
+coinbase-advanced-py
+python-telegram-bot
+python-dotenv
+requests

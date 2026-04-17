@@ -1,6 +1,7 @@
 # Environment Variables
 .env
-.sam-env
+.myenv
+.test-env
 
 # SQLite Databases
 *.db

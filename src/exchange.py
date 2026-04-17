@@ -1,7 +1,9 @@
 import os
+import requests
 from dotenv import load_dotenv
 from coinbase.rest import RESTClient
 import uuid
+import src.database as database
 
 load_dotenv()
 
@@ -10,17 +12,37 @@ API_SECRET = os.getenv("COINBASE_API_SECRET").replace('\\n', '\n')
 
 client = RESTClient(api_key=API_KEY, api_secret=API_SECRET)
 
+def get_live_price(ticker):
+    """Fetches the real-time USD price of a coin from the public API."""
+    try:
+        url = f"https://api.coinbase.com/api/v3/brokerage/market/products/{ticker}-USD/ticker"
+        response = requests.get(url).json()
+        return float(response['trades'][0]['price'])
+    except Exception as e:
+        print(f"⚠️ Error fetching price for {ticker}: {e}")
+        return 0.0
+
 def get_portfolio_balances():
     accounts = client.get_accounts()
     balances = {}
 
-    # Add any coins here that you DO NOT want the bot to rebalance
-    IGNORE_LIST = ['USD', 'USDC']
+    # Dynamically fetch the blacklist from your database
+    ignore_list = database.get_blacklist()
 
     for acc in accounts['accounts']:
-        value = float(acc['available_balance']['value'])
-        if value > 0:
-            balances[acc['currency']] = value
+        coin_amount = float(acc['available_balance']['value'])
+        ticker = acc['currency']
+        
+        # Verify the coin is not on the blacklist!
+        if coin_amount > 0 and ticker not in ignore_list:
+            # Multiply the amount of coins by the live USD price
+            live_price = get_live_price(ticker)
+            usd_value = coin_amount * live_price
+            
+            # Only track it if it's actually worth something (ignores micro-dust)
+            if usd_value > 10.00: 
+                balances[ticker] = usd_value
+                
     return balances
 
 def execute_trade(action, coin, amount_usd):
